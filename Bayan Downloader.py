@@ -57,7 +57,7 @@ class VideoDownloaderApp(QWidget):
             self.download_path_input.setText(download_path)
 
     def download_video(self):
-        url = self.url_input.text()
+        url = str(self.url_input.text()).replace(" ", "").replace("\n", "")
         download_path = self.download_path_input.text()
         output_name = self.output_name_input.text()
 
@@ -66,7 +66,9 @@ class VideoDownloaderApp(QWidget):
             return
 
         try:
-            video_url = get_video_url(url.replace(" ", ""))
+            print("log 1 => url = " + url)
+            video_url = get_video_url(url)
+            print("log 2 => video_url = " + video_url)
             if video_url:
                 output_file = os.path.join(download_path, output_name + ".mp4")
 
@@ -102,13 +104,13 @@ class Downloader(QThread):
 
     def __init__(self, video_url, output_file, parent=None):
         super().__init__(parent)
-        self.video_url = video_url.replace(" ", "")
+        self.video_url = video_url
         self.output_file = output_file
 
     def run(self):
         try:
             # Use subprocess to run ffmpeg command for downloading the video
-            subprocess.run(["ffmpeg", "-i", self.video_url.replace(" ", ""),
+            subprocess.run(["ffmpeg", "-i", self.video_url,
                            self.output_file], check=True)
         except subprocess.CalledProcessError as e:
             QMessageBox.critical(
@@ -119,15 +121,11 @@ class Downloader(QThread):
 
 def get_video_url(url):
     try:
-        # Get the path to the CA bundle file from certifi
-        ca_bundle_path = certifi.where()
 
-        # Send a GET request to the URL with SSL verification using the provided CA bundle
-        response = requests.get(url.replace(" ", ""), verify=False)
+        response = requests.get(url, verify=False)
 
-        # Check if the request was successful (status code 200)
         if response.status_code == 200:
-            # Parse the HTML content using BeautifulSoup
+
             soup = BeautifulSoup(response.text, 'html.parser')
 
             # Use a regular expression to find the specific part in the HTML
@@ -142,8 +140,8 @@ def get_video_url(url):
             else:
                 raise Exception("Pattern not found in the HTML.")
         else:
-            raise Exception(f"Failed to fetch URL. Status code: {
-                            response.status_code}")
+            raise Exception(
+                f"Failed to fetch URL. Status code: {response.status_code}")
     except Exception as e:
         raise Exception(f"An error occurred while getting video URL: {e}")
 
